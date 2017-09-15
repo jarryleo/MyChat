@@ -152,11 +152,6 @@ public class Client implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-
-    }
-
-    @Override
-    public void onActivityStarted(Activity activity) {
         if (activity instanceof ClientListener) {
             ClientListener clientListener = (ClientListener) activity;
             if (mBinder == null) {
@@ -165,6 +160,11 @@ public class Client implements Application.ActivityLifecycleCallbacks {
                 mBinder.addListener(clientListener);
             }
         }
+    }
+
+    @Override
+    public void onActivityStarted(Activity activity) {
+
     }
 
     @Override

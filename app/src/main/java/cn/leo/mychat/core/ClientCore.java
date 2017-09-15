@@ -1,5 +1,7 @@
 package cn.leo.mychat.core;
 
+import android.os.SystemClock;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -8,7 +10,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 
 
 public class ClientCore extends Thread {
@@ -54,23 +55,19 @@ public class ClientCore extends Thread {
             socketChannel.register(selector, SelectionKey.OP_READ, ByteBuffer.allocate(BUFFER_CACHE)); // 绑定频道到选择器
 
             while (!socketChannel.finishConnect()) {
-                try {
-                    TimeUnit.SECONDS.sleep(1); // 1秒检测一次是否连接
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                SystemClock.sleep(1000);// 1秒循环检测一次是否连接完毕
             }
 
             if (socketChannel.finishConnect()) { // 如果连接成功，则循环发送消息
                 if (mListener != null) {
                     mListener.onConnectSuccess();// 已连接
-                    excuteSelector();
+                    executeSelector(); //进入消息检测循环
                 }
             }
 
         } catch (Exception e) {
 
-        } finally {
+        } finally { //走到这里表示连接服务器失败
             if (mListener != null) {
                 mListener.onConnectFailed();// 连接失败
             }
@@ -78,24 +75,22 @@ public class ClientCore extends Thread {
         }
     }
 
-    public void excuteSelector() {
+    public void executeSelector() {
 
         try {
             while (true) {
                 if (selector.select(TIME_OUT) == 0) {
                     continue;
                 }
-                Iterator<SelectionKey> iter = selector.selectedKeys().iterator(); // 遍历频道选择器的连接通知，有连接就获取
-                while (iter.hasNext()) {
-                    SelectionKey key = iter.next();
+                Iterator<SelectionKey> iterator = selector.selectedKeys().iterator(); // 遍历频道选择器的连接通知，有连接就获取
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
                     if (key.isReadable()) { // 如果是读取数据
                         handleRead(key);
                     } else if (key.isWritable() && key.isValid()) { // 可写数据
                         handleWrite(key);
-                    } else if (key.isConnectable()) { // 连接成功
-
                     }
-                    iter.remove(); // 处理后从队列移除
+                    iterator.remove(); // 处理后从队列移除
                 }
             }
         } catch (IOException e) {
@@ -110,7 +105,7 @@ public class ClientCore extends Thread {
     /**
      * 发送数据
      *
-     * @param bytes
+     * @param bytes 数据字节
      */
     public void sendMsg(byte[] bytes) {
 
@@ -150,7 +145,7 @@ public class ClientCore extends Thread {
     /**
      * 处理读取数据
      *
-     * @param key
+     * @param key key
      * @throws IOException
      */
     private void handleRead(SelectionKey key) throws IOException {
@@ -165,11 +160,11 @@ public class ClientCore extends Thread {
             byte[] bytes;
             int receiveLength = 0; // 已接受长度
             int bytesRead = 0;// 读取频道内的数据到缓冲区
-            while (receiveLength < dataLength) {
+            while (receiveLength < dataLength) { //根据头部数据长度把所有数据读入内存输出流
                 if (dataLength - receiveLength < buf.capacity()) {
-                    buf.limit(dataLength - receiveLength);
+                    buf.limit(dataLength - receiveLength); //调整缓冲区大小为剩余字节数
                 }
-                bytesRead = sc.read(buf); // TODO 这里可能有BUG要处理
+                bytesRead = sc.read(buf); //读取数据到缓冲区
                 buf.flip();// 重置缓冲区limit
 
                 if (bytesRead < 1) { // 读取不到数据退出
@@ -181,15 +176,15 @@ public class ClientCore extends Thread {
                 } else {
                     bytes = new byte[bytesRead]; // 否则为读取长度
                 }
-                buf.get(bytes);
-                baos.write(bytes);
+                buf.get(bytes); //从缓冲区读取数据到数组
+                baos.write(bytes); //写入内存输出流
                 buf.clear();// 清空缓冲区
                 receiveLength += bytes.length; // 已读取的数据长度
             }
             if (mListener != null) {
                 mListener.onDataArrived(baos.toByteArray());
             }
-            baos.reset();
+            baos.reset(); //重置内存输出流
             if (bytesRead == -1) { // 服务器断开连接，关闭频道
                 sc.close();
             }
@@ -200,7 +195,7 @@ public class ClientCore extends Thread {
     /**
      * 处理写入数据
      *
-     * @param key
+     * @param key key
      * @throws IOException
      */
     private void handleWrite(SelectionKey key) throws IOException {
