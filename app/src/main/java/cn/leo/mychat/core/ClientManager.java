@@ -2,7 +2,6 @@ package cn.leo.mychat.core;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +20,10 @@ public class ClientManager implements ClientListener {
     public ClientManager(String ip, int port) {
         this.ip = ip;
         this.port = port;
+        connectServer(ip, port);
+    }
+
+    private void connectServer(String ip, int port) {
         client = ClientCore.startClient(ip, port, this); //连接服务器
     }
 
@@ -31,8 +34,6 @@ public class ClientManager implements ClientListener {
     @Override
     public void onIntercept() {
         status = STATUS_OFFLINE;
-        SystemClock.sleep(5000);//中断5秒后重连
-        client = ClientCore.startClient(ip, port, this);// 重新连接服务器
         for (final ClientListener listener : mListeners) {
             mHandler.post(new Runnable() {
                 @Override
@@ -41,6 +42,12 @@ public class ClientManager implements ClientListener {
                 }
             });
         }
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                connectServer(ip, port);
+            }
+        }, 1000);
     }
 
     @Override
@@ -72,8 +79,12 @@ public class ClientManager implements ClientListener {
     @Override
     public void onConnectFailed() {
         status = STATUS_OFFLINE;
-        SystemClock.sleep(5000);//中断5秒后重连
-        client = ClientCore.startClient(ip, port, this);// 重新连接服务器
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                connectServer(ip, port);
+            }
+        }, 1000);
         for (final ClientListener listener : mListeners) {
             mHandler.post(new Runnable() {
                 @Override

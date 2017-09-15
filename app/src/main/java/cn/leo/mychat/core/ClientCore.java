@@ -48,17 +48,21 @@ public class ClientCore extends Thread {
     }
 
     private void client() {
+        int timeout = 5;
         try {
             socketChannel = SocketChannel.open(); // 开启频道
             socketChannel.configureBlocking(false); // 频道设置无阻塞
             socketChannel.connect(new InetSocketAddress(mIp, mPort));// 连接服务器
-            socketChannel.register(selector, SelectionKey.OP_READ, ByteBuffer.allocate(BUFFER_CACHE)); // 绑定频道到选择器
 
-            while (!socketChannel.finishConnect()) {
+            while (!socketChannel.finishConnect() && timeout > 0) {
                 SystemClock.sleep(1000);// 1秒循环检测一次是否连接完毕
+                timeout--;
             }
 
             if (socketChannel.finishConnect()) { // 如果连接成功，则循环发送消息
+                socketChannel.register(selector,
+                        SelectionKey.OP_READ,
+                        ByteBuffer.allocate(BUFFER_CACHE)); // 绑定频道到选择器
                 if (mListener != null) {
                     mListener.onConnectSuccess();// 已连接
                     executeSelector(); //进入消息检测循环
@@ -78,7 +82,7 @@ public class ClientCore extends Thread {
     public void executeSelector() {
 
         try {
-            while (true) {
+            while (selector != null) {
                 if (selector.select(TIME_OUT) == 0) {
                     continue;
                 }
@@ -96,7 +100,6 @@ public class ClientCore extends Thread {
         } catch (IOException e) {
             if (mListener != null) {
                 mListener.onIntercept();
-                mListener = null;
             }
             close();
         }
@@ -138,6 +141,9 @@ public class ClientCore extends Thread {
                 }
             }
         } catch (Exception e) {
+            if (mListener != null) {
+                mListener.onIntercept();
+            }
             close();
         }
     }
@@ -186,7 +192,10 @@ public class ClientCore extends Thread {
             }
             baos.reset(); //重置内存输出流
             if (bytesRead == -1) { // 服务器断开连接，关闭频道
-                sc.close();
+                if (mListener != null) {
+                    mListener.onIntercept();
+                }
+                close();
             }
         }
 
@@ -219,8 +228,14 @@ public class ClientCore extends Thread {
             if (socketChannel != null) {
                 socketChannel.close();
             }
+            selector = null;
+            socketChannel = null;
+            buffer = null;
+            mListener = null;
+            System.gc();
         } catch (IOException e1) {
             // e1.printStackTrace();
         }
+
     }
 }
