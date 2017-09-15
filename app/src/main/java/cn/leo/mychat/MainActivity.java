@@ -2,13 +2,14 @@ package cn.leo.mychat;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import cn.leo.mychat.core.Client;
 import cn.leo.mychat.core.ClientListener;
 
-public class MainActivity extends AppCompatActivity implements ClientListener {
+public class MainActivity extends AppCompatActivity implements ClientListener, View.OnClickListener {
 
     private TextView mTv_code;
 
@@ -17,6 +18,7 @@ public class MainActivity extends AppCompatActivity implements ClientListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mTv_code = (TextView) findViewById(R.id.tv_code);
+        mTv_code.setOnClickListener(this);
     }
 
     @Override
@@ -47,4 +49,8 @@ public class MainActivity extends AppCompatActivity implements ClientListener {
         mTv_code.setText(msg);
     }
 
+    @Override
+    public void onClick(View v) {
+        Client.sendMsg("123".getBytes());
+    }
 }

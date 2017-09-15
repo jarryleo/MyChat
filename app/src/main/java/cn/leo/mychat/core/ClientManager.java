@@ -1,5 +1,6 @@
 package cn.leo.mychat.core;
 
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -27,13 +28,23 @@ public class ClientManager implements ClientListener {
         client = ClientCore.startClient(ip, port, this); //连接服务器
     }
 
-    public void send(byte[] bytes) {
-        client.sendMsg(bytes);
+    public void send(final byte[] bytes) {
+        new SendTask().execute(bytes);
+    }
+
+    private class SendTask extends AsyncTask<byte[], Void, Void> {
+        @Override
+        protected Void doInBackground(byte[]... params) {
+            client.sendMsg(params[0]);
+            return null;
+        }
     }
 
     @Override
     public void onIntercept() {
         status = STATUS_OFFLINE;
+        mHandler.removeCallbacks(reConnect);
+        mHandler.postDelayed(reConnect, 1000);
         for (final ClientListener listener : mListeners) {
             mHandler.post(new Runnable() {
                 @Override
@@ -42,12 +53,6 @@ public class ClientManager implements ClientListener {
                 }
             });
         }
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                connectServer(ip, port);
-            }
-        }, 1000);
     }
 
     @Override
@@ -79,12 +84,8 @@ public class ClientManager implements ClientListener {
     @Override
     public void onConnectFailed() {
         status = STATUS_OFFLINE;
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                connectServer(ip, port);
-            }
-        }, 1000);
+        mHandler.removeCallbacks(reConnect);
+        mHandler.postDelayed(reConnect, 1000);
         for (final ClientListener listener : mListeners) {
             mHandler.post(new Runnable() {
                 @Override
@@ -94,6 +95,13 @@ public class ClientManager implements ClientListener {
             });
         }
     }
+
+    private Runnable reConnect = new Runnable() {
+        @Override
+        public void run() {
+            connectServer(ip, port);
+        }
+    };
 
     public int getStatus() {
         return status;

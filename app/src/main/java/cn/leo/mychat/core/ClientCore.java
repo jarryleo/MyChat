@@ -141,6 +141,7 @@ public class ClientCore extends Thread {
                 }
             }
         } catch (Exception e) {
+            e.printStackTrace();
             if (mListener != null) {
                 mListener.onIntercept();
             }
