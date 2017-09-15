@@ -1,5 +1,6 @@
 package cn.leo.mychat.core;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.ComponentName;
@@ -14,10 +15,12 @@ import java.util.List;
 
 
 /**
+ * NIO安卓客户端
  * Created by Leo on 2017/9/14.
  */
 
 public class Client implements Application.ActivityLifecycleCallbacks {
+    @SuppressLint("StaticFieldLeak")
     private static Client mClient;
     private static String mIp;
     private static int mPort;
@@ -32,14 +35,16 @@ public class Client implements Application.ActivityLifecycleCallbacks {
         mService = new Intent(application, ClientService.class);
         mConn = new MyConnection();
         application.startService(mService);//开启即时通讯服务
-        mApplication.bindService(mService, mConn, Context.BIND_ABOVE_CLIENT);
+        application.bindService(mService, mConn, Context.BIND_ABOVE_CLIENT);
         application.registerActivityLifecycleCallbacks(this);
     }
 
     /**
      * 开启即时通信服务
      *
-     * @param application
+     * @param application app全局
+     * @param ip          ip地址
+     * @param port        端口号
      */
     public static void init(Application application, String ip, int port) {
         if (mClient == null) {
@@ -47,14 +52,13 @@ public class Client implements Application.ActivityLifecycleCallbacks {
             mPort = port;
             mClient = new Client(application);
         }
-
     }
 
-    public static String getIp() {
+    static String getIp() {
         return mIp;
     }
 
-    public static int getPort() {
+    static int getPort() {
         return mPort;
     }
 
@@ -68,7 +72,7 @@ public class Client implements Application.ActivityLifecycleCallbacks {
     /**
      * 发送消息
      *
-     * @param bytes
+     * @param bytes 发送消息字节
      */
     public static void sendMsg(byte[] bytes) {
         mClient.send(bytes);
@@ -82,7 +86,7 @@ public class Client implements Application.ActivityLifecycleCallbacks {
     /**
      * 获取连接状态
      *
-     * @return
+     * @return 返回连接状态 0 未连接 1 连接
      */
     public static int getConnectStatus() {
         return mClient.getStatus();
@@ -104,7 +108,7 @@ public class Client implements Application.ActivityLifecycleCallbacks {
         mApplication = null;
     }
 
-    public static void regMsgListener(ClientListener listener) {
+    public static void subscribe(ClientListener listener) {
         mClient.regListener(listener);
     }
 
@@ -117,11 +121,11 @@ public class Client implements Application.ActivityLifecycleCallbacks {
 
     }
 
-    public static void unregMsgListener(ClientListener listener) {
-        mClient.unregListener(listener);
+    public static void unsubscribe(ClientListener listener) {
+        mClient.unRegListener(listener);
     }
 
-    private void unregListener(ClientListener listener) {
+    private void unRegListener(ClientListener listener) {
         if (mBinder == null) {
             tempListener.remove(listener);
         } else {
@@ -130,7 +134,7 @@ public class Client implements Application.ActivityLifecycleCallbacks {
     }
 
 
-    class MyConnection implements ServiceConnection {
+    private class MyConnection implements ServiceConnection {
 
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
