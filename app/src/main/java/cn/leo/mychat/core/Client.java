@@ -1,19 +1,14 @@
 package cn.leo.mychat.core;
 
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
-import android.app.job.JobInfo;
-import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
