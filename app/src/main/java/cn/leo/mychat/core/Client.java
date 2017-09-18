@@ -1,14 +1,19 @@
 package cn.leo.mychat.core;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +38,10 @@ public class Client implements Application.ActivityLifecycleCallbacks {
     private Client(Application application) {
         mApplication = application;
         mService = new Intent(application, ClientService.class);
+        Intent job = new Intent(application, ClientJob.class);
         mConn = new MyConnection();
         application.startService(mService);//开启即时通讯服务
+        application.startService(job);//开启定时唤醒服务
         application.bindService(mService, mConn, Context.BIND_ABOVE_CLIENT);
         application.registerActivityLifecycleCallbacks(this);
     }
@@ -108,6 +115,11 @@ public class Client implements Application.ActivityLifecycleCallbacks {
         mApplication = null;
     }
 
+    /**
+     * 订阅消息监听
+     *
+     * @param listener 监听器
+     */
     public static void subscribe(ClientListener listener) {
         mClient.regListener(listener);
     }
@@ -121,6 +133,11 @@ public class Client implements Application.ActivityLifecycleCallbacks {
 
     }
 
+    /**
+     * 取消订阅消息监听
+     *
+     * @param listener 监听器
+     */
     public static void unsubscribe(ClientListener listener) {
         mClient.unRegListener(listener);
     }
@@ -152,6 +169,11 @@ public class Client implements Application.ActivityLifecycleCallbacks {
 
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+
+    }
+
+    @Override
+    public void onActivityStarted(Activity activity) {
         if (activity instanceof ClientListener) {
             ClientListener clientListener = (ClientListener) activity;
             if (mBinder == null) {
@@ -160,11 +182,6 @@ public class Client implements Application.ActivityLifecycleCallbacks {
                 mBinder.addListener(clientListener);
             }
         }
-    }
-
-    @Override
-    public void onActivityStarted(Activity activity) {
-
     }
 
     @Override

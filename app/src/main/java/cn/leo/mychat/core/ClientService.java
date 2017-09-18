@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 
 /**
@@ -47,4 +48,9 @@ public class ClientService extends Service {
         mClientManager = new ClientManager(Client.getIp(), Client.getPort());
     }
 
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Log.e("即时通讯服务", "onDestroy: 服务被结束了！" );
+    }
 }
