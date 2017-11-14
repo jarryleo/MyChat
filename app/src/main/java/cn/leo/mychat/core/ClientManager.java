@@ -2,7 +2,9 @@ package cn.leo.mychat.core;
 
 import android.os.AsyncTask;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.Message;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,16 +31,16 @@ public class ClientManager implements ClientListener {
     }
 
     public void send(final byte[] bytes) {
-        new SendTask().execute(bytes);
+        sendHandler.obtainMessage(0, bytes);
     }
 
-    private class SendTask extends AsyncTask<byte[], Void, Void> {
+    private HandlerThread sendThread = new HandlerThread("sendThread");
+    private Handler sendHandler = new Handler(sendThread.getLooper()) {
         @Override
-        protected Void doInBackground(byte[]... params) {
-            client.sendMsg(params[0]);
-            return null;
+        public void handleMessage(Message msg) {
+            client.sendMsg((byte[]) msg.obj);
         }
-    }
+    };
 
     @Override
     public void onIntercept() {

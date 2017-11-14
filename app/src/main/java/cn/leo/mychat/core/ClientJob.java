@@ -20,7 +20,7 @@ import java.util.List;
 
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)//API需要在21及以上
 public class ClientJob extends JobService {
-    private int kJobId = 1;
+    private int kJobId = 0;
 
     @Override
     public void onCreate() {
@@ -36,7 +36,7 @@ public class ClientJob extends JobService {
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        String serviceName = getPackageName() + ".core.ClientService";
+        String serviceName = getPackageName() + ".core.ClientService";//改成你需要保活的服务名：全包名
         Log.i("job---", "onStartJob: 定时任务执行" + serviceName);
         boolean isLocalServiceWork = isServiceWork(this, serviceName);
         if (!isLocalServiceWork) {
@@ -67,6 +67,7 @@ public class ClientJob extends JobService {
         builder.setRequiresDeviceIdle(false);
         builder.setMinimumLatency(1000);
         builder.setOverrideDeadline(3000);
+        builder.setBackoffCriteria(5000, JobInfo.BACKOFF_POLICY_LINEAR);
         //builder.setPeriodic(1000);
         return builder.build();
     }
