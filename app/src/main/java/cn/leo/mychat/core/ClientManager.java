@@ -19,11 +19,21 @@ public class ClientManager implements ClientListener {
     private ClientCore client;
     private List<ClientListener> mListeners = new ArrayList<>();
     private Handler mHandler = new Handler(Looper.getMainLooper());//切换线程
+    private final HandlerThread mSendThread;
+    private final Handler mSendHandler;
 
     public ClientManager(String ip, int port) {
         this.ip = ip;
         this.port = port;
         connectServer(ip, port);
+        mSendThread = new HandlerThread("sendThread");
+        mSendThread.start();
+        mSendHandler = new Handler(mSendThread.getLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                client.sendMsg((byte[]) msg.obj);
+            }
+        };
     }
 
     private void connectServer(String ip, int port) {
@@ -31,16 +41,9 @@ public class ClientManager implements ClientListener {
     }
 
     public void send(final byte[] bytes) {
-        sendHandler.obtainMessage(0, bytes);
+        mSendHandler.obtainMessage(0, bytes);
     }
 
-    private HandlerThread sendThread = new HandlerThread("sendThread");
-    private Handler sendHandler = new Handler(sendThread.getLooper()) {
-        @Override
-        public void handleMessage(Message msg) {
-            client.sendMsg((byte[]) msg.obj);
-        }
-    };
 
     @Override
     public void onIntercept() {
