@@ -1,6 +1,5 @@
 package cn.leo.mychat.core;
 
-import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
@@ -41,7 +40,7 @@ public class ClientManager implements ClientListener {
     }
 
     public void send(final byte[] bytes) {
-        mSendHandler.obtainMessage(0, bytes);
+        mSendHandler.obtainMessage(0, bytes).sendToTarget();
     }
 
 
